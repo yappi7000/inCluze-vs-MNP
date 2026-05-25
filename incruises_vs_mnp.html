@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>【実録2026】「旅しながら稼ぐ」の暗黒仕様をF1エンジニアが解剖した結果、MNPが最速すぎた件</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Bebas+Neue&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --red: #D83C28;
+  --red-light: rgba(216,60,40,0.08);
+  --red-border: rgba(216,60,40,0.25);
+  --blue: #185FA5;
+  --blue-light: rgba(24,95,165,0.08);
+  --blue-border: rgba(24,95,165,0.25);
+  --amber: #E8A020;
+  --dark: #0a0a0f;
+  --text: #1a1a1a;
+  --text-muted: #555;
+  --bg: #f5f4f0;
+  --surface: #fff;
+  --border: rgba(0,0,0,0.08);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.85;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== HERO ===== */
+.hero {
+  background: var(--dark);
+  padding: 4rem 2rem 3rem;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -80px; right: -80px;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(216,60,40,0.18) 0%, transparent 65%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: -60px; left: -60px;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(24,95,165,0.15) 0%, transparent 65%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.hero-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+.hero-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--red);
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hero-eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 24px; height: 2px;
+  background: var(--red);
+}
+.hero-title {
+  font-weight: 900;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  color: #fff;
+  line-height: 1.35;
+  margin-bottom: 1.25rem;
+}
+.hero-title .accent { color: var(--amber); }
+.hero-sub {
+  font-size: 14px;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 1.5rem;
+  line-height: 1.7;
+}
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  letter-spacing: 0.05em;
+}
+.badge-red { background: rgba(216,60,40,0.2); color: #F09575; border: 1px solid rgba(216,60,40,0.35); }
+.badge-blue { background: rgba(24,95,165,0.2); color: #85B7EB; border: 1px solid rgba(24,95,165,0.35); }
+.badge-amber { background: rgba(232,160,32,0.15); color: #FAC775; border: 1px solid rgba(232,160,32,0.3); }
+
+/* ===== WRAPPER ===== */
+.wrapper {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 5rem;
+}
+
+/* ===== LEAD ===== */
+.lead-box {
+  background: var(--surface);
+  border-left: 4px solid var(--red);
+  border-radius: 0 12px 12px 0;
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 3rem;
+  font-size: 16px;
+  line-height: 1.9;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+}
+.lead-box strong { color: var(--red); }
+
+/* ===== SECTION ===== */
+.section { margin-bottom: 3.5rem; }
+
+.section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 1.5rem;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(0,0,0,0.08);
+}
+.section-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 3rem;
+  color: var(--red);
+  line-height: 1;
+}
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+p { margin-bottom: 1rem; color: var(--text); }
+
+/* ===== TRAP ITEMS ===== */
+.trap-item {
+  margin: 1.5rem 0;
+}
+.trap-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--red);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.trap-label .icon { font-size: 1rem; }
+.sub-heading {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.75rem;
+}
+.trap-box {
+  background: var(--red-light);
+  border: 1px solid var(--red-border);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+}
+.trap-box p { margin: 0; font-size: 15px; }
+.trap-box strong { color: var(--red); }
+
+/* ===== MERIT ITEMS ===== */
+.merit-item { margin: 1.5rem 0; }
+.merit-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.merit-box {
+  background: var(--blue-light);
+  border: 1px solid var(--blue-border);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+}
+.merit-box p { margin: 0; font-size: 15px; }
+.merit-box strong { color: var(--blue); }
+
+/* ===== VS COMPARE ===== */
+.vs-wrap {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin: 1.75rem 0;
+  background: var(--surface);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+}
+.vs-col {
+  padding: 1.5rem;
+}
+.vs-col.inc { background: var(--red-light); }
+.vs-col.mnp { background: var(--blue-light); }
+.vs-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.vs-tag.inc { color: var(--red); }
+.vs-tag.mnp { color: var(--blue); }
+.vs-val {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+.vs-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.vs-mid {
+  background: var(--dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1rem;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.3rem;
+  color: var(--amber);
+  writing-mode: vertical-rl;
+  letter-spacing: 0.15em;
+}
+
+/* ===== DIVIDER ===== */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent);
+  margin: 3rem 0;
+}
+
+/* ===== BIG STAT ===== */
+.stat-highlight {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2rem;
+  color: var(--red);
+  line-height: 1;
+}
+
+/* ===== FINAL VERDICT ===== */
+.verdict {
+  background: var(--dark);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  position: relative;
+  overflow: hidden;
+}
+.verdict::before {
+  content: 'FINAL LAP';
+  position: absolute;
+  top: 16px; right: 20px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 4rem;
+  color: rgba(255,255,255,0.03);
+  letter-spacing: 0.1em;
+  line-height: 1;
+  pointer-events: none;
+}
+.verdict-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--amber);
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.verdict-label::before, .verdict-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(232,160,32,0.3);
+}
+.verdict-body {
+  font-size: 16px;
+  color: rgba(255,255,255,0.8);
+  line-height: 1.85;
+  margin-bottom: 1.5rem;
+}
+.verdict-body strong { color: var(--amber); }
+.verdict-note {
+  font-size: 13px;
+  color: rgba(255,255,255,0.4);
+  line-height: 1.7;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 1rem;
+  margin-top: 1rem;
+}
+
+/* ===== RESULT TABLE ===== */
+.result-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+.result-card {
+  border-radius: 14px;
+  padding: 1.5rem;
+}
+.result-card.inc {
+  background: var(--red-light);
+  border: 1px solid var(--red-border);
+}
+.result-card.mnp {
+  background: var(--blue-light);
+  border: 1px solid var(--blue-border);
+}
+.result-card-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.8rem;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.result-card-name.inc { color: var(--red); }
+.result-card-name.mnp { color: var(--blue); }
+.result-card-sub {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.result-list {
+  list-style: none;
+  font-size: 13px;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.result-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.5;
+}
+.result-list li::before {
+  content: '×';
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.result-list.inc li::before { color: var(--red); }
+.result-list.mnp li::before { content: '✓'; color: var(--blue); }
+
+@media (max-width: 600px) {
+  .hero { padding: 3rem 1.25rem 2.5rem; }
+  .vs-wrap { grid-template-columns: 1fr; }
+  .vs-mid { writing-mode: horizontal-tb; padding: 0.75rem; font-size: 1rem; }
+  .result-grid { grid-template-columns: 1fr; }
+  .wrapper { padding: 2rem 1.25rem 4rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">実録レポート 2026年版</div>
+    <h1 class="hero-title">
+      「旅しながら稼ぐ」の<span class="accent">暗黒仕様</span>を<br>
+      F1エンジニアが解剖した結果、<br>
+      MNPが<span class="accent">最速</span>すぎた件
+    </h1>
+    <p class="hero-sub">
+      インクルーズ vs MNP ── 数字で見る、どちらが本当に稼げるか。<br>
+      ロマンに釣られる前に、レギュレーションを読め。
+    </p>
+    <div class="hero-badges">
+      <span class="badge badge-red">MLM注意報</span>
+      <span class="badge badge-blue">MNP戦略</span>
+      <span class="badge badge-amber">2026年最新データ</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrapper">
+
+  <!-- LEAD -->
+  <div class="lead-box">
+    SNSを眺めていると毎日流れてくる「豪華客船が実質半額」「旅しながら権利収入」という甘いキャッチコピー。その筆頭が、アメリカ発の会員制クルーズクラブ「inCruises（インクルーズ）」だ。<br><br>
+    しかしF1のレギュレーションチェックのように<strong>数字だけで冷静に分解</strong>すると、その構造に隠れた「ドロドロの罠」が見えてくる。そして最終的に浮かび上がるのは、地味に見えて実は最速の戦略──<strong>MNP（携帯乗り換え）</strong>だ。
+  </div>
+
+  <!-- SECTION 01 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2 class="section-title">インクルーズ：華やかなマシンの「暗黒仕様」</h2>
+    </div>
+    <p>パドック（SNS）での前評判はスーパーカー並み。「うちのマシン（豪華客船）に乗れば、優雅に世界を転戦できる！」とドライバー（会員）を誘惑する。だがいざシートに座ると、前代未聞の縛りプレイが待っている。</p>
+
+    <!-- 罠1 -->
+    <div class="trap-item">
+      <div class="trap-label"><span class="icon">🔴</span> 罠①：走らなくても燃料を吸われる「強制ピットイン」</div>
+      <div class="sub-heading">毎月$100（年間約20万円）の強制徴収</div>
+      <div class="trap-box">
+        <p>インクルーズのレギュレーションでは、旅行に行っていない月も会費は容赦なく引き落とされる。「未来への積立」と説明されるが、積み上がったポイントは<strong>現金化できない</strong>。走っていない間もサイフからガソリンが漏れ続けるヘビー級のバラスト（重り）だ。年間にすると軽く<strong>20万円超</strong>が消える計算になる。</p>
+      </div>
+    </div>
+
+    <!-- 罠2 -->
+    <div class="trap-item">
+      <div class="trap-label"><span class="icon">🔴</span> 罠②：「5人集めればタダ」というピットクルーの呪い</div>
+      <div class="sub-heading">紹介者が1人でも抜けた瞬間、$100が即復活</div>
+      <div class="trap-box">
+        <p>「有能なピットクルー（紹介者）を5人集めれば会費免除」という甘い無線が飛ぶ。しかしこのクルーたちが1人でも「ピットアウトします」と去った瞬間、翌月から<strong>$100の請求が大復活</strong>。ドライバーは常に紹介者の顔色を伺い、引き止めるために膨大な時間と精神力を摩耗する。これはビジネスではなく、<strong>人間関係の人質</strong>だ。</p>
+      </div>
+    </div>
+
+    <!-- 罠3 -->
+    <div class="trap-item">
+      <div class="trap-label"><span class="icon">🔴</span> 罠③：ポイントが2倍になるのは「9ヶ月前予約」だけ</div>
+      <div class="sub-heading">2026年最新レギュレーション：269日ルールの罠</div>
+      <div class="trap-box">
+        <p>「1ドル払えば2倍のポイント！」は本当だ。ただし旅行の<strong>9ヶ月（269日）以上前</strong>に予約した場合のみ。急に旅行したければポイントは半分しか使えず、残りは現金払い。「今すぐ追い抜きたいのにパワーが出ない」──豪華客船はいつだって遠い存在だ。</p>
+      </div>
+    </div>
+
+    <!-- 罠4 -->
+    <div class="trap-item">
+      <div class="trap-label"><span class="icon">🔴</span> 罠④：本拠地はプエルトリコ、日本支社はなし</div>
+      <div class="sub-heading">トラブルは英語で国際戦、完全アウェイ</div>
+      <div class="trap-box">
+        <p>退会・返金トラブルが起きて「無線が通じない！」とパニックになっても、<strong>公式の日本窓口は存在しない</strong>。SNSで見かける「日本公式サイト」は上位代理店が作った非公式ページだ。本当の問い合わせ先は遥か彼方のプエルトリコ。英語の国際レギュレーションと戦う完全アウェイの孤独なレースが待っている。</p>
+      </div>
+    </div>
+
+    <!-- VS比較 -->
+    <div class="vs-wrap">
+      <div class="vs-col inc">
+        <div class="vs-tag inc">インクルーズ コスト</div>
+        <div class="vs-val">年間 約20万円〜<br>固定出費</div>
+        <div class="vs-desc">会費だけで。旅行費は別途。5人集められなければ永遠に発生。ポイントは現金化不可。</div>
+      </div>
+      <div class="vs-mid">VS</div>
+      <div class="vs-col mnp">
+        <div class="vs-tag mnp">MNP 収益</div>
+        <div class="vs-val">1回あたり<br>数万円〜確定</div>
+        <div class="vs-desc">初期費用ほぼゼロ。契約当日にキャッシュバック＆端末売却益が確定。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- SECTION 02 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2 class="section-title">MNP：地味なガレージに潜む「最速マシン」</h2>
+    </div>
+    <p>豪華客船もシャンパンファイトもない。しかし数字を見れば、MNPは現代F1並みの高効率インテリジェンス戦略だとわかる。</p>
+
+    <div class="merit-item">
+      <div class="merit-label"><span>🔵</span> 強み①：1周目から即トップ──圧倒的な即金性</div>
+      <div class="sub-heading">契約当日にキャッシュバック＆端末売却益が確定</div>
+      <div class="merit-box">
+        <p>インクルーズが「何十周も走って、人を巻き込んで、数年後に表彰台」を目指す耐久レースなのに対し、MNPはピットを出たその日に利益確定だ。<strong>eSIMなら来店不要、即時開通</strong>。待ち時間ゼロの超スプリントレース。「やってみたけど結局稼げなかった」というリスクが構造的に存在しない。</p>
+      </div>
+    </div>
+
+    <div class="merit-item">
+      <div class="merit-label"><span>🔵</span> 強み②：チームメイトは自分だけ</div>
+      <div class="sub-heading">紹介・勧誘・人間関係リスク：完全ゼロ</div>
+      <div class="merit-box">
+        <p>ネットワークビジネス特有の「友達を誘って関係にイエローフラッグが振られる」リスクは一切ない。自分の意志だけでキャリアを選び、確実にタイム（利益）を出す。<strong>他人のやる気や感情という不確定要素</strong>がそもそも存在しないのが最大の安定性だ。</p>
+      </div>
+    </div>
+
+    <div class="merit-item">
+      <div class="merit-label"><span>🔵</span> 強み③：テレメトリーデータで再現性100%</div>
+      <div class="sub-heading">事務手数料・維持費・解約タイミングを完全可視化</div>
+      <div class="merit-box">
+        <p>スプレッドシートで収支を管理し、eSIMで即時開通、最適な解約タイミングを計算──この手順を繰り返せば<strong>誰がやっても同じ結果が出る</strong>。「メカニカル・グリップ（再現性）」とはこのことだ。感情も運も必要ない。数字の通りにアクセルを踏むだけでいい。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- SECTION 03 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2 class="section-title">最終リザルト：数字が出した答え</h2>
+    </div>
+    <p>感情論を排除して、純粋にコスパだけで比較するとこうなる。</p>
+
+    <div class="result-grid">
+      <div class="result-card inc">
+        <div class="result-card-name inc">INCRUISES</div>
+        <div class="result-card-sub">24時間耐久 泥沼レース</div>
+        <ul class="result-list inc">
+          <li>毎月の固定費でサイフはガス欠</li>
+          <li>人を集め続けないと永遠に赤字</li>
+          <li>ポイントは現金化できない</li>
+          <li>旅行は9ヶ月前予約が必須</li>
+          <li>トラブルは英語で孤独に戦う</li>
+        </ul>
+      </div>
+      <div class="result-card mnp">
+        <div class="result-card-name mnp">MNP</div>
+        <div class="result-card-sub">超合理的 スプリントレース</div>
+        <ul class="result-list mnp">
+          <li>当日確実に利益確定</li>
+          <li>一人で完結、人間関係ゼロ</li>
+          <li>再現性あり、誰でも同じ結果</li>
+          <li>eSIM即開通で来店不要</li>
+          <li>日本語・国内で完結</li>
+        </ul>
+      </div>
+    </div>
+
+    <p style="margin-top:1.5rem;">「旅しながら権利収入」という言葉の魅力は本物だ。だからこそ冷静に数字を見ることが重要になる。<span class="stat-highlight">毎月$100</span>を自動的に吸い取り続ける構造と、<strong>契約当日に数万円を確定できる構造</strong>──どちらが自分の生活を豊かにするかは、考えるまでもない。</p>
+    <p>難解な海外レギュレーションに縛られ、友達を失うリスクを背負って豪華客船のピットに引きこもる必要は、どこにもない。</p>
+  </div>
+
+  <!-- VERDICT -->
+  <div class="verdict">
+    <div class="verdict-label">FINAL LAP</div>
+    <p class="verdict-body">
+      他人に振り回されるロマンより、<strong>数字が裏切らないMNPがやっぱり最強</strong>。パドックの裏でプロたちが口を揃えて言う結論は、いつだってこれだ。<br><br>
+      キャリアのルールをスマートにハックして、一人でサクッと確実に賞金をかっさらう。わざわざ難解な海外レギュレーションと戦う必要がどこにあるだろうか。<strong>数字を見て、データで動き、最短ルートでキャッシュを最大化させる</strong>──それが2026年の最速戦略だ。
+    </p>
+    <div class="verdict-note">
+      ※ 本記事はインクルーズへの投資を否定するものではありません。仕組みとコストを正確に理解した上で判断することを推奨しています。MNPについては別途、具体的な手順・収益シミュレーションをご覧ください。
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
